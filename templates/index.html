@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Behavior Analyzer</title>
+  <link rel="stylesheet" href="static/styles.css" />
+  <!-- Firebase SDK -->
+  <script type="module" src="static/firebase.js"></script>
+</head>
+<body>
+
+<div id="intro-page" style="text-align: center; padding: 40px;">
+  <h1>🧠 AI Behavior Analyzer</h1>
+
+  <p style="max-width: 800px; margin: auto; font-size: 18px;">
+    <strong>Welcome!</strong> This tool helps analyze your personality, emotional reactions, and decision-making style using AI.  
+    You'll be asked a series of structured questions across different aspects of your personality.
+  </p>
+  <p style="max-width: 800px; margin: 15px auto; font-size: 18px;">
+    After answering all the questions, the AI will generate a behavioral analysis based on your responses.<br>
+    You can also test how you might behave in a specific real-life situation by using the <em>“Predict Behavior in Situation”</em> option.
+  </p>
+  <hr style="margin: 30px 0;">
+
+  <p dir="rtl" style="max-width: 800px; margin: auto; font-size: 18px;">
+    <strong>خوش آمدید!</strong> این ابزار با کمک هوش مصنوعی، به تحلیل شخصیت، واکنش‌های احساسی و سبک تصمیم‌گیری شما می‌پردازد.  
+    در ادامه، به چند پرسش ساختاریافته در زمینه‌های مختلف رفتاری پاسخ خواهید داد.
+  </p>
+  <p dir="rtl" style="max-width: 800px; margin: 15px auto; font-size: 18px;">
+    پس از تکمیل پرسش‌نامه، تحلیل شخصیتی بر اساس پاسخ‌های شما نمایش داده می‌شود.<br>
+    همچنین می‌توانید با انتخاب گزینه <em>«پیش‌بینی رفتار در موقعیت»</em>، واکنش خود را در یک شرایط واقعی خاص بررسی کنید.
+  </p>
+
+  <button onclick="startAnalysis()" style="margin-top: 30px; padding: 12px 30px; font-size: 18px; border-radius: 8px;">
+    ▶ Start Analysis / شروع تحلیل
+  </button>
+</div>
+
+
+  
+  <div class="chat-container" style="display: none;">
+    <div class="chat-box">
+      <div class="chat-header">AI Personality Analyzer</div>
+      
+      <div class="step" id="step1">
+        <div class="form-section">
+          <h3 class="section-title">Personal Information / اطلاعات شخصی</h3>
+        
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">What is your Gmail?</span>
+              <span class="fa">ایمیلتان را وارد کنید.</span>
+            </label>
+            <input type="text" id="name" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">How old are you?</span>
+              <span class="fa">چند سال دارید؟ </span>
+            </label>
+            <input type="number" id="age" required>
+          </div>
+      
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">What is Your gender?</span>
+              <span class="fa">جنسیت شما چیست؟ </span>
+            </label>
+            <input type="text" id="gender" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Where do You live?</span>
+              <span class="fa">کجا زندگی می‌کنید؟ </span>
+            </label>
+            <input type="text" id="residence" required>
+          </div>
+          </div>
+          <button class="btn-next" onclick="nextStep()">Next</button>
+        </div>
+
+      
+      <div class="step" id="step2">
+        <div class="form-section">
+          <h3 class="section-title">Education, Profession & Skills /تحصیلات، شغل، و مهارت‌ها </h3>
+        
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">What is your highest level of education?</span>
+              <span class="fa">آخرین مدرک تحصیلی که دریافت کردید چه بود؟</span>
+            </label>
+            <input type="text" id="education_level" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">What is your current job title or profession?</span>
+              <span class="fa">عنوان شغل فعلی شما چیست؟ </span>
+            </label>
+            <input type="text" id="profession_title" required>
+          </div>
+      
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">What are your main professional skills?</span>
+              <span class="fa"> مهارت‌های اصلی شما چیست؟ </span>
+            </label>
+            <input type="text" id="skill_set" required>
+          </div>
+          </div>
+          <button class="btn-back" onclick="previousStep()">Back</button>
+          <button class="btn-next" onclick="nextStep()">Next</button>
+        </div>
+
+      <div class="step" id="step3">
+        <div class="form-section">
+          <h3 class="section-title">Cognitive & Decision-Making Style / سبک شناختی و تصمیم‌گیری</h3>
+        
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">How do you approach difficult decisions? Emotionally or logically?</span>
+              <span class="fa">زمانی که با یک تصمیم دشوار مواجه می‌شوید، چگونه اقدام می‌کنید؟ آیا احساساتی تصمیم می‌گیرید یا بر اساس داده و منطق؟</span>
+            </label>
+            <input type="text" id="decision_Making_Logic" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Do you analyze all options before deciding, or rely on intuition? </span>
+              <span class="fa">آیا قبل از تصمیم‌گیری، تمام گزینه‌ها را تحلیل می‌کنید یا بر شهود خود تکیه دارید؟ </span>
+            </label>
+            <input type="text" id="Decision_Making_Analysis" required>
+          </div>
+      
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">If your decision turns out wrong, do you take responsibility or blame external factors?</span>
+              <span class="fa">اگر نتیجه تصمیم‌تان اشتباه باشد، آن را مسئولیت خود می‌دانید یا عوامل بیرونی را مقصر می‌دانید؟ </span>
+            </label>
+            <input type="text" id="locus_of_control" required>
+          </div>
+      
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Are you a risk-taker or more cautious? </span>
+              <span class="fa">ریسک‌پذیر هستید یا محتاط؟ </span>
+            </label>
+            <input type="text" id="risk_tolerance" required>
+          </div>
+        </div>
+        <button class="btn-back" onclick="previousStep()">Back</button>
+        <button class="btn-next" onclick="nextStep()">Next</button>
+      </div>
+ 
+      
+      <div class="step" id="step4">
+        <div class="form-section">
+          <h3 class="section-title">Emotional Reactions & Social Behavior /واکنش‌های احساسی و روابط اجتماعی </h3>
+        
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">How do you react when someone disagrees with you?</span>
+              <span class="fa">زمانی که کسی با شما مخالفت می‌کند، واکنش‌تان چیست؟</span>
+            </label>
+            <input type="text" id="conflict_response" required>
+          </div>
+        
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Do you easily connect with others, or does it take time to build trust?</span>
+              <span class="fa">آیا به راحتی با دیگران ارتباط برقرار می‌کنید یا زمان زیادی می‌برد تا اعتماد کنید؟</span>
+            </label>
+            <input type="text" id="trust_building" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Do you feel comfortable in large groups or prefer being alone? </span>
+              <span class="fa">در جمع‌های بزرگ احساس راحتی می‌کنید یا ترجیح می‌دهید تنها باشید؟</span>
+            </label>
+            <input type="text" id="social_prefrence" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Can you control yourself when angry, or do you react impulsively? </span>
+              <span class="fa">آیا در هنگام عصبانیت به خود کنترل دارید یا واکنشی رفتار می‌کنید؟</span>
+            </label>
+            <input type="text" id="anger_management" required>
+          </div>
+        </div>
+        <button class="btn-back" onclick="previousStep()">Back</button>
+        <button class="btn-next" onclick="nextStep()">Next</button>
+      </div>
+
+      <div class="step" id="step5">
+        <div class="form-section">
+          <h3 class="section-title"> Response to Failure & Experience Processing / واکنش به شکست‌ها و تجربه‌های گذشته </h3>
+        
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">How did you handle one of your biggest failures in the past?</span>
+              <span class="fa">در گذشته، با یکی از بزرگ‌ترین شکست‌های خود چگونه کنار آمدید؟</span>
+            </label>
+            <input type="text" id="failure_handling" required>
+          </div>
+        
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Do you see mistakes as learning opportunities or take them personally?</span>
+              <span class="fa">آیا اشتباهات را فرصتی برای یادگیری می‌دانید یا به آن‌ها حساس هستید؟</span>
+            </label>
+            <input type="text" id="learning_from_mistakes" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">How have your past negative experiences shaped your current behavior? </span>
+              <span class="fa">چگونه تجربه‌های منفی گذشته‌تان بر رفتار امروزتان تأثیر گذاشته‌اند؟</span>
+            </label>
+            <input type="text" id="past_impact" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Do you adapt easily to change or resist it? </span>
+              <span class="fa">آیا با تغییرات راحت کنار می‌آیید یا مقاومت می‌کنید؟</span>
+            </label>
+            <input type="text" id="adaptability" required>
+          </div>
+        </div>
+        <button class="btn-back" onclick="previousStep()">Back</button>
+        <button class="btn-next" onclick="nextStep()">Next</button>
+      </div>
+
+  
+      <div class="step" id="step6">
+        <div class="form-section">
+          <h3 class="section-title"> Goals & Motivational Drivers / اهداف شخصی و انگیزه‌ها </h3>
+        
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">What is your biggest life goal?</span>
+              <span class="fa">بزرگ‌ترین هدف زندگی‌تان چیست؟</span>
+            </label>
+            <input type="text" id="life_goal" required>
+          </div>
+        
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">What motivates you to work, learn, or stay active?</span>
+              <span class="fa">چه چیزی شما را به کار، یادگیری یا فعالیت‌های روزمره ترغیب می‌کند؟</span>
+            </label>
+            <input type="text" id="motivation_source" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Do you measure success by personal achievement or by your impact on others? </span>
+              <span class="fa">آیا موفقیت را با دستاوردهای شخصی می‌سنجید یا با تأثیرگذاری بر دیگران؟</span>
+            </label>
+            <input type="text" id="success_definition" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">How much are you willing to sacrifice for your goal? </span>
+              <span class="fa">برای رسیدن به هدفتان چقدر حاضر به فداکاری هستید؟</span>
+            </label>
+            <input type="text" id="sacrifice_level" required>
+          </div>
+        </div>
+          <button class="btn-back" onclick="previousStep()">Back</button>
+          <button class="btn-next" onclick="nextStep()">Next</button>
+      </div>   
+
+
+      <div class="step" id="step7">
+        <div class="form-section">
+          <h3 class="section-title">Wealth & Social Status/ثروت و موقعیت اجتماعی </h3>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">How would you rate your current position in society compared to others around you?</span>
+              <span class="fa">جایگاه فعلی خود را نسبت به دیگران در جامعه چگونه ارزیابی می‌کنید؟</span>
+            </label>
+            <input type="text" id="perceived_social_rank" required>
+          </div>
+
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">How is your current financial status currently?</span>
+              <span class="fa">وضعیت مالی شما در حال حاظر چگونه است؟</span>
+            </label>
+            <input type="text" id="wealth_status" required>
+          </div>
+          
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Are you known or recognized in your community for any reason (e.g. profession, influence, achievements)?</span>
+              <span class="fa">آیا در جامعه یا محله خود به دلایلی مانند شغل، نفوذ یا دستاوردهای خاصی شناخته‌شده هستید؟ </span>
+            </label>
+            <input type="text" id="community_recognition" required>
+          </div>
+          
+          
+          <div class="question-item">
+            <label class="question-label">
+              <span class="en">Would you describe yourself as part of the elite, middle class, or working class?</span>
+              <span class="fa">خودتان را متعلق به کدام طبقه اجتماعی می‌دانید؟ (نخبه، طبقه متوسط، یا کارگر)؟ </span>
+            </label>
+            <input type="text" id="self_identification" required>
+          </div>
+          
+          <div class="question-item">  
+            <label class="question-label">
+              <span class="en">Do people seek your opinion or advice on important matters?</span>
+              <span class="fa">آیا دیگران برای مسائل مهم از شما مشورت یا راهنمایی می‌گیرند؟</span>
+            </label>
+            <input type="text" id="social_influence" required>
+          </div>
+          </div>
+          <button class="btn-back" onclick="previousStep()">⬅ Back / بازگشت</button>
+        
+          <button class="btn-analyze" onclick="collectAndAnalyze()">
+            <span class="en">Start Behavior Analysis</span><br>
+            <span class="fa">شروع تحلیل رفتار</span>   
+          </button>
+  
+          <button class="action-button" onclick="predictBehavior()">
+            <span class="en">Predict Behavior in Situation</span><br>
+            <span class="fa">پیش‌بینی رفتار در موقعیت</span>
+          </button>
+      </div>
+      
+      <!-- Result -->
+      <div id="loading-indicator" style="display:none; color: gray; margin-top: 15px;">
+        ⏳ Awaiting AI response... / ...منتظر پاسخگویی از سیستم هوش مصنوعی
+      </div>
+      <div id="result-box" class="analysis-result" style="display:none; margin-top: 20px;"></div>
+      <div id="situation-result-box" class="analysis-result" style="display:none;"></div>
+      <div id="situation-input-box" style="display:none; margin-top: 15px;">
+        <label for="situation-text">🧠 Describe a situation for prediction/ یک موقعیت را برای پیش‌بینی توصیف کن.</label><br>
+        <textarea id="situation-text" rows="3" style="width: 100%; padding: 8px; border-radius: 8px;"></textarea><br>
+        <button onclick="submitSituation()" style="margin-top: 8px;">Submit Situation / موقعیت را ثبت کن.</button>
+      </div>
+
+
+      </div>
+    </div>
+
+
+</body>
+</html>
