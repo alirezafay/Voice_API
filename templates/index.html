@@ -53,6 +53,7 @@
               <span class="fa">ایمیلتان را وارد کنید.</span>
             </label>
             <input type="text" id="name" required>
+            <button class="record-btn" data-target="name">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -61,6 +62,7 @@
               <span class="fa">چند سال دارید؟ </span>
             </label>
             <input type="number" id="age" required>
+            <button class="record-btn" data-target="age">🎤 Record</button>
           </div>
       
           <div class="question-item">
@@ -69,6 +71,8 @@
               <span class="fa">جنسیت شما چیست؟ </span>
             </label>
             <input type="text" id="gender" required>
+            <button class="record-btn" data-target="gender">🎤 Record</button>
+
           </div>
 
           <div class="question-item">
@@ -77,6 +81,8 @@
               <span class="fa">کجا زندگی می‌کنید؟ </span>
             </label>
             <input type="text" id="residence" required>
+            <button class="record-btn" data-target="residence">🎤 Record</button>
+
           </div>
           </div>
           <button class="btn-next" onclick="nextStep()">Next</button>
@@ -93,6 +99,7 @@
               <span class="fa">آخرین مدرک تحصیلی که دریافت کردید چه بود؟</span>
             </label>
             <input type="text" id="education_level" required>
+            <button class="record-btn" data-target="education_level">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -101,6 +108,7 @@
               <span class="fa">عنوان شغل فعلی شما چیست؟ </span>
             </label>
             <input type="text" id="profession_title" required>
+            <button class="record-btn" data-target="profession_title">🎤 Record</button>
           </div>
       
           <div class="question-item">
@@ -109,6 +117,7 @@
               <span class="fa"> مهارت‌های اصلی شما چیست؟ </span>
             </label>
             <input type="text" id="skill_set" required>
+            <button class="record-btn" data-target="skill_set">🎤 Record</button>
           </div>
           </div>
           <button class="btn-back" onclick="previousStep()">Back</button>
@@ -125,6 +134,7 @@
               <span class="fa">زمانی که با یک تصمیم دشوار مواجه می‌شوید، چگونه اقدام می‌کنید؟ آیا احساساتی تصمیم می‌گیرید یا بر اساس داده و منطق؟</span>
             </label>
             <input type="text" id="decision_Making_Logic" required>
+            <button class="record-btn" data-target="decision_Making_Logic">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -133,6 +143,7 @@
               <span class="fa">آیا قبل از تصمیم‌گیری، تمام گزینه‌ها را تحلیل می‌کنید یا بر شهود خود تکیه دارید؟ </span>
             </label>
             <input type="text" id="Decision_Making_Analysis" required>
+            <button class="record-btn" data-target="Decision_Making_Analysis">🎤 Record</button>
           </div>
       
           <div class="question-item">
@@ -141,6 +152,7 @@
               <span class="fa">اگر نتیجه تصمیم‌تان اشتباه باشد، آن را مسئولیت خود می‌دانید یا عوامل بیرونی را مقصر می‌دانید؟ </span>
             </label>
             <input type="text" id="locus_of_control" required>
+            <button class="record-btn" data-target="locus_of_control">🎤 Record</button>
           </div>
       
           <div class="question-item">
@@ -149,6 +161,7 @@
               <span class="fa">ریسک‌پذیر هستید یا محتاط؟ </span>
             </label>
             <input type="text" id="risk_tolerance" required>
+            <button class="record-btn" data-target="risk_tolerance">🎤 Record</button>
           </div>
         </div>
         <button class="btn-back" onclick="previousStep()">Back</button>
@@ -166,6 +179,7 @@
               <span class="fa">زمانی که کسی با شما مخالفت می‌کند، واکنش‌تان چیست؟</span>
             </label>
             <input type="text" id="conflict_response" required>
+            <button class="record-btn" data-target="conflict_response">🎤 Record</button>
           </div>
         
           <div class="question-item">
@@ -174,6 +188,7 @@
               <span class="fa">آیا به راحتی با دیگران ارتباط برقرار می‌کنید یا زمان زیادی می‌برد تا اعتماد کنید؟</span>
             </label>
             <input type="text" id="trust_building" required>
+            <button class="record-btn" data-target="trust_building">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -182,6 +197,7 @@
               <span class="fa">در جمع‌های بزرگ احساس راحتی می‌کنید یا ترجیح می‌دهید تنها باشید؟</span>
             </label>
             <input type="text" id="social_prefrence" required>
+            <button class="record-btn" data-target="social_prefrence">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -190,6 +206,7 @@
               <span class="fa">آیا در هنگام عصبانیت به خود کنترل دارید یا واکنشی رفتار می‌کنید؟</span>
             </label>
             <input type="text" id="anger_management" required>
+            <button class="record-btn" data-target="anger_management">🎤 Record</button>
           </div>
         </div>
         <button class="btn-back" onclick="previousStep()">Back</button>
@@ -206,6 +223,7 @@
               <span class="fa">در گذشته، با یکی از بزرگ‌ترین شکست‌های خود چگونه کنار آمدید؟</span>
             </label>
             <input type="text" id="failure_handling" required>
+            <button class="record-btn" data-target="failure_handling">🎤 Record</button>
           </div>
         
           <div class="question-item">
@@ -214,6 +232,7 @@
               <span class="fa">آیا اشتباهات را فرصتی برای یادگیری می‌دانید یا به آن‌ها حساس هستید؟</span>
             </label>
             <input type="text" id="learning_from_mistakes" required>
+            <button class="record-btn" data-target="learning_from_mistakes">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -222,6 +241,7 @@
               <span class="fa">چگونه تجربه‌های منفی گذشته‌تان بر رفتار امروزتان تأثیر گذاشته‌اند؟</span>
             </label>
             <input type="text" id="past_impact" required>
+            <button class="record-btn" data-target="past_impact">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -230,6 +250,7 @@
               <span class="fa">آیا با تغییرات راحت کنار می‌آیید یا مقاومت می‌کنید؟</span>
             </label>
             <input type="text" id="adaptability" required>
+            <button class="record-btn" data-target="adaptability">🎤 Record</button>
           </div>
         </div>
         <button class="btn-back" onclick="previousStep()">Back</button>
@@ -247,6 +268,7 @@
               <span class="fa">بزرگ‌ترین هدف زندگی‌تان چیست؟</span>
             </label>
             <input type="text" id="life_goal" required>
+            <button class="record-btn" data-target="life_goal">🎤 Record</button>
           </div>
         
           <div class="question-item">
@@ -255,6 +277,7 @@
               <span class="fa">چه چیزی شما را به کار، یادگیری یا فعالیت‌های روزمره ترغیب می‌کند؟</span>
             </label>
             <input type="text" id="motivation_source" required>
+            <button class="record-btn" data-target="motivation_source">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -263,6 +286,7 @@
               <span class="fa">آیا موفقیت را با دستاوردهای شخصی می‌سنجید یا با تأثیرگذاری بر دیگران؟</span>
             </label>
             <input type="text" id="success_definition" required>
+            <button class="record-btn" data-target="success_definition">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -271,6 +295,7 @@
               <span class="fa">برای رسیدن به هدفتان چقدر حاضر به فداکاری هستید؟</span>
             </label>
             <input type="text" id="sacrifice_level" required>
+            <button class="record-btn" data-target="sacrifice_level">🎤 Record</button>
           </div>
         </div>
           <button class="btn-back" onclick="previousStep()">Back</button>
@@ -288,6 +313,7 @@
               <span class="fa">جایگاه فعلی خود را نسبت به دیگران در جامعه چگونه ارزیابی می‌کنید؟</span>
             </label>
             <input type="text" id="perceived_social_rank" required>
+            <button class="record-btn" data-target="perceived_social_rank">🎤 Record</button>
           </div>
 
           <div class="question-item">
@@ -296,6 +322,7 @@
               <span class="fa">وضعیت مالی شما در حال حاظر چگونه است؟</span>
             </label>
             <input type="text" id="wealth_status" required>
+            <button class="record-btn" data-target="wealth_status">🎤 Record</button>
           </div>
           
           <div class="question-item">
@@ -304,6 +331,7 @@
               <span class="fa">آیا در جامعه یا محله خود به دلایلی مانند شغل، نفوذ یا دستاوردهای خاصی شناخته‌شده هستید؟ </span>
             </label>
             <input type="text" id="community_recognition" required>
+            <button class="record-btn" data-target="community_recognition">🎤 Record</button>
           </div>
           
           
@@ -313,6 +341,7 @@
               <span class="fa">خودتان را متعلق به کدام طبقه اجتماعی می‌دانید؟ (نخبه، طبقه متوسط، یا کارگر)؟ </span>
             </label>
             <input type="text" id="self_identification" required>
+            <button class="record-btn" data-target="self_identification">🎤 Record</button>
           </div>
           
           <div class="question-item">  
@@ -321,6 +350,7 @@
               <span class="fa">آیا دیگران برای مسائل مهم از شما مشورت یا راهنمایی می‌گیرند؟</span>
             </label>
             <input type="text" id="social_influence" required>
+            <button class="record-btn" data-target="social_influence">🎤 Record</button>
           </div>
           </div>
           <button class="btn-back" onclick="previousStep()">⬅ Back / بازگشت</button>
