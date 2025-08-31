@@ -1,0 +1,125 @@
+from flask import Flask, request, jsonify, render_template
+import requests
+import json
+import os
+
+app = Flask(__name__)
+
+API_KEY = os.environ.get("API_KEY")  
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
+
+def formatUserDataAsPrompt(userData):
+    lines = [
+        "تو یک دستیار تحلیلی هستی. در ادامه اطلاعات کاربر در دسته‌بندی‌های مختلف آمده است. بر اساس آن‌ها، تحلیل شخصیتی و رفتاری دقیقی ارائه کن، و نحوه ی تصمیم‌گیری آنرا شرح بده.\n"
+    ]
+
+    personal = userData.get("personal_information", {})
+    lines.append("بخش اطلاعات شخصی:")
+    lines.append(f"نام: {personal.get('name')}")
+    lines.append(f"سن: {personal.get('age')}")
+    lines.append(f"جنسیت: {personal.get('gender')}")
+    lines.append(f"محل زندگی: {personal.get('residence')}\n")
+
+    cognitive = userData.get("cognitive_style", {})
+    lines.append("سبک تصمیم‌گیری:")
+    lines.append(f"- تصمیم‌گیری احساسی یا منطقی: {cognitive.get('decision_Making_Logic')}")
+    lines.append(f"- تحلیل یا شهود در تصمیم‌گیری: {cognitive.get('decision_Making_Analysis')}")
+    lines.append(f"- رویکرد نسبت به اشتباهات: {cognitive.get('locus_of_control')}")
+    lines.append(f"- سطح ریسک‌پذیری: {cognitive.get('risk_tolerance')}\n")
+
+    emotion = userData.get("emotion", {})
+    lines.append("روابط اجتماعی و احساسی:")
+    lines.append(f"- واکنش به مخالفت: {emotion.get('conflict_response')}")
+    lines.append(f"- ایجاد اعتماد: {emotion.get('trust_building')}")
+    lines.append(f"- ترجیح اجتماعی: {emotion.get('social_prefrence')}")
+    lines.append(f"- مدیریت خشم: {emotion.get('anger_management')}\n")
+
+    experience = userData.get("experience", {})
+    lines.append("تجربیات گذشته:")
+    lines.append(f"- برخورد با شکست: {experience.get('failure_handling')}")
+    lines.append(f"- یادگیری از اشتباهات: {experience.get('learning_from_mistakes')}")
+    lines.append(f"- تأثیر تجربیات منفی: {experience.get('past_impact')}")
+    lines.append(f"- سازگاری با تغییر: {experience.get('adaptability')}\n")
+
+    motivation = userData.get("motivations", {})
+    lines.append("انگیزه‌ها و اهداف:")
+    lines.append(f"- هدف زندگی: {motivation.get('life_goal')}")
+    lines.append(f"- منبع انگیزه: {motivation.get('motivation_source')}")
+    lines.append(f"- تعریف موفقیت: {motivation.get('success_definition')}")
+    lines.append(f"- میزان فداکاری: {motivation.get('sacrifice_level')}\n")
+
+    background = userData.get("background", {})
+    lines.append("پس‌زمینه‌ی کاری و حرفه‌ای:")
+    lines.append(f"-سطح تحصیلات: {background.get('education_level')}")
+    lines.append(f"- عنوان شغلی: {background.get('profession_title')}")
+    lines.append(f"- مجموعه‌ی مهارت‌ها: {background.get('skill_set')}\n")
+
+    social_status = userData.get("social_status", {})
+    lines.append("جایگاه اجتماعی:")
+    lines.append(f"- درک جایگاه اجتماعی: {social_status.get('perceived_social_rank')}")
+    lines.append(f"- اعتبار اجتماعی در جامعه: {social_status.get('community_recognition')}")
+    lines.append(f"- هویت‌یابی فردی: {social_status.get('self-identification')}")
+    lines.append(f"- تاثیرگذاری اجتماعی: {social_status.get('social_influence')}\n")
+    return "\n".join(lines)
+
+def generate_response(userData):
+    prompt = formatUserDataAsPrompt(userData)
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    headers = {"Content-Type": "application/json"}
+
+    response = requests.post(URL, json=payload, headers=headers)
+    try:
+        result = response.json()
+        return result["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        return f"Error processing AI response: {str(e)}"
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/analyze_direct", methods=["POST"])
+def analyze_direct():
+    data = request.json
+    user_data = data.get("user_data")
+    if not user_data:
+        return jsonify({"error": "No user data provided"}), 400
+
+    ai_result = generate_response(user_data)
+    return jsonify({"ai_result": ai_result})
+
+
+@app.route("/predict_behavior", methods=["POST"])
+def predict_behavior():
+    data = request.json
+    user_data = data.get("user_data")
+    situation = data.get("situation")
+
+    if not user_data or not situation:
+        return jsonify({"prediction": "Missing user data or situation description."}), 400
+
+    prompt = f"""The following is a behavioral profile of a person:
+{json.dumps(user_data, ensure_ascii=False, indent=2)}
+با توجه به این پروفایل، این شخص در شرایطی که گفته می‌شود چه کاری انجام می‌دهد و چگونه رفتار می‌کند؟
+Situation: {situation}
+
+لطفا یک تخمین با تفکر از نوع رفتار شخص ارائه بده. """
+
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    headers = {"Content-Type": "application/json"}
+
+    response = requests.post(URL, json=payload, headers=headers)
+
+    try:
+        result = response.json()
+        if "candidates" in result:
+            return jsonify({"prediction": result["candidates"][0]["content"]["parts"][0]["text"]})
+        else:
+            return jsonify({"prediction": "No prediction response received from AI."})
+    except Exception as e:
+        return jsonify({"prediction": f"Error: {str(e)}"})
+
+
+@app.route('/healthz')
+def health_check():
+    return "OK", 200
