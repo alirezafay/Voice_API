@@ -4,7 +4,6 @@
 let currentStep = 1;
 let socket;
 let mediaRecorder;
-let isRecording = false; // Add a global flag
 
 // ------------------------------
 // Initialize on page load
@@ -25,15 +24,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Attach a global mouseup listener to stop recording anywhere on the page
   document.addEventListener("mouseup", () => {
-    if (isRecording) { // Only stop if a recording is in progress
-        stopRecording();
-        isRecording = false;
-        // Reset all buttons in case one was pressed
-        document.querySelectorAll(".record-btn").forEach(btn => {
-          btn.innerText = "🎤 Record";
-          btn.classList.remove("recording-active");
-        });
-    }
+    stopRecording();
+    // Reset all buttons in case one was pressed
+    document.querySelectorAll(".record-btn").forEach(btn => {
+      btn.innerText = "🎤 Record";
+      btn.classList.remove("recording-active");
+    });
   });
 
   // Attach record button events
@@ -42,25 +38,19 @@ window.addEventListener("DOMContentLoaded", () => {
       btn.innerText = "🔴 Recording…";
       btn.classList.add("recording-active");
       startRecording(btn.dataset.target);
-      isRecording = true; // Set flag to true
     });
-    
+
     // Mobile support
     btn.addEventListener("touchstart", () => {
       btn.innerText = "🔴 Recording…";
       btn.classList.add("recording-active");
       startRecording(btn.dataset.target);
-      isRecording = true;
     });
 
     btn.addEventListener("touchend", () => {
-      // Use the isRecording flag to avoid issues
-      if (isRecording) {
-        stopRecording();
-        isRecording = false;
-        btn.innerText = "🎤 Record";
-        btn.classList.remove("recording-active");
-      }
+      stopRecording();
+      btn.innerText = "🎤 Record";
+      btn.classList.remove("recording-active");
     });
   });
 
