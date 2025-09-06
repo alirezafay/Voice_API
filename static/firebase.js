@@ -22,16 +22,20 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  // Add a global mouseup listener to stop recording anywhere on the page
+  document.addEventListener("mouseup", () => {
+    stopRecording();
+    // Reset all buttons in case one was pressed
+    document.querySelectorAll(".record-btn").forEach(btn => {
+      btn.innerText = "🎤 Record";
+    });
+  });
+
   // Attach record button events
   document.querySelectorAll(".record-btn").forEach(btn => {
     btn.addEventListener("mousedown", () => {
       btn.innerText = "🔴 Recording…";
       startRecording(btn.dataset.target);
-    });
-
-    btn.addEventListener("mouseup", () => {
-      stopRecording();
-      btn.innerText = "🎤 Record";
     });
 
     // Mobile support
