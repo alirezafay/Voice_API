@@ -383,31 +383,7 @@
     </div>
 
 
-<script>
-  // Attach record button events
-  document.querySelectorAll(".record-btn").forEach(btn => {
-    btn.addEventListener("mousedown", () => {
-      btn.innerText = "🔴 Recording…";
-      startRecording(btn.dataset.target);
-    });
 
-    btn.addEventListener("mouseup", () => {
-      stopRecording();
-      btn.innerText = "🎤 Record";
-    });
-
-    // Mobile support
-    btn.addEventListener("touchstart", () => {
-      btn.innerText = "🔴 Recording…";
-      startRecording(btn.dataset.target);
-    });
-
-    btn.addEventListener("touchend", () => {
-      stopRecording();
-      btn.innerText = "🎤 Record";
-    });
-  });
-</script>
 
 </body>
 </html>
