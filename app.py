@@ -74,13 +74,21 @@ def generate_response(userData):
     headers = {"Content-Type": "application/json"}
 
     response = requests.post(URL, json=payload, headers=headers)
+    
+    # --- ADD THIS LINE FOR DEBUGGING ---
+    print(f"Gemini API Raw Response: {response.text}")
+    
     try:
         result = response.json()
         if "candidates" in result:
             return result["candidates"][0]["content"]["parts"][0]["text"]
-        return "No content in AI response."
+        
+        # --- RETURN THE ERROR MESSAGE FROM THE API INSTEAD ---
+        return f"API Error: {result.get('error', {}).get('message', 'No specific error message.')}"
+
     except Exception as e:
         return f"Error processing AI response: {str(e)}"
+
 
 @app.route("/")
 def index():
