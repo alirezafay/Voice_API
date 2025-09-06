@@ -10,7 +10,6 @@ import threading
 app = Flask(__name__)
 
 API_KEY = os.environ.get("API_KEY")
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={API_KEY}"
 
 def formatUserDataAsPrompt(userData):
     """Formats the user data into a prompt for AI analysis."""
@@ -69,6 +68,7 @@ def formatUserDataAsPrompt(userData):
 
 def generate_response(userData):
     """Sends a request to the Gemini API to analyze user data."""
+    URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
     prompt = formatUserDataAsPrompt(userData)
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
@@ -101,6 +101,7 @@ def analyze_direct():
 @app.route("/predict_behavior", methods=["POST"])
 def predict_behavior():
     """Predicts a person's behavior based on their profile and a given situation."""
+    URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
     data = request.json
     user_data = data.get("user_data")
     situation = data.get("situation")
@@ -138,6 +139,9 @@ def health_check():
 
 async def ws_handler(websocket, path):
     """Handles WebSocket connections for speech-to-text."""
+    # Correct URL for multimodal input with a stable model
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={API_KEY}"
+    
     async for message in websocket:
         data = json.loads(message)
         audio_data_base64 = data.get("audio")
@@ -156,7 +160,7 @@ async def ws_handler(websocket, path):
                             {"text": "Transcribe the audio."},
                             {
                                 "inlineData": {
-                                    "mimeType": "audio/webm",  # Assuming the audio is sent as webm. Adjust if needed.
+                                    "mimeType": "audio/webm",
                                     "data": audio_data_base64
                                 }
                             }
@@ -167,7 +171,7 @@ async def ws_handler(websocket, path):
             
             headers = {"Content-Type": "application/json"}
             
-            response = requests.post(URL, data=json.dumps(payload), headers=headers)
+            response = requests.post(url, data=json.dumps(payload), headers=headers)
             response.raise_for_status()
             result = response.json()
             text = result["candidates"][0]["content"]["parts"][0]["text"]
