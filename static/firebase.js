@@ -167,7 +167,7 @@ window.previousStep = function () {
     showStep(currentStep);
   }
 };
-window.onload = () => showStep(currentStep);
+// window.onload = () => showStep(currentStep);
 
 
 
