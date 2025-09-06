@@ -11,6 +11,33 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
  */
+
+
+// ------------------------------
+// Global Variables
+// ------------------------------
+let currentStep = 1;
+let socket;
+let mediaRecorder;
+
+// ------------------------------
+// Window onload: Initialize UI and WebSocket
+// ------------------------------
+window.onload = () => {
+  showStep(currentStep);
+
+  // Initialize WebSocket for real-time transcription
+  socket = new WebSocket("ws://localhost:5001");
+  socket.onopen = () => console.log("WebSocket connected");
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    const inputBox = document.getElementById(data.qid);
+    if (inputBox) {
+      inputBox.value += " " + data.text;
+    }
+  };
+};
+
 window.startAnalysis = function () {
   document.getElementById("intro-page").style.display = "none";
   document.querySelector(".chat-container").style.display = "block";
@@ -141,3 +168,10 @@ window.previousStep = function () {
   }
 };
 window.onload = () => showStep(currentStep);
+
+
+
+// ------------------------------
+// Real-Time Voice Recording & WebSocket
+// ------------------------------
+
