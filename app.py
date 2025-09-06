@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, render_template
-import requests
-import json
-import os
+import requests, json, os, based64, asyncio, websockets
+import threading
 
 app = Flask(__name__)
 
@@ -123,3 +122,37 @@ Situation: {situation}
 @app.route('/healthz')
 def health_check():
     return "OK", 200
+
+
+async def ws_handler(websocket, path):
+    async for message in websocket:
+        data = json.loads(message)
+        audio_bytes = base64.b64decode(data["audio"])
+        qid = data.get("qid")
+
+        payload = {
+            "contents": [{"parts": [{"text": "Transcribe this audio."}]}]
+        }
+        files = {"audio": audio_bytes}
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            response = requests.post(URL, json=payload, headers=headers)
+            result = response.json()
+            text = result["candidates"][0]["content"]["parts"][0]["text"]
+        except exception as e:
+            text = f"Error: {str(e)}"
+        
+        await websocket.send(json.dumps({"qid": qid, "text": text}))
+
+def sart_ws_server():
+    loop = asyncio.new_evenmt_loop()
+    asyncio.set_event_loop(loop)
+    ws_server = websockets.serve(ws_handler, "0.0.0.0", 5001)
+    loop.run_until_complete(ws_server)
+    loop.run_forever()
+
+threading.Thread(target=start_ws_server, daemon= True).start()
+
+if __name__ = "__main__""
+    app.run(host="0.0.0.0", port=5000, debug=Trure)
