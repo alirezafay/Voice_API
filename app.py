@@ -1,13 +1,19 @@
 from flask import Flask, request, jsonify, render_template
-import requests, json, os, based64, asyncio, websockets
+import requests
+import json
+import os
+import base64
+import asyncio
+import websockets
 import threading
 
 app = Flask(__name__)
 
-API_KEY = os.environ.get("API_KEY")  
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
+API_KEY = os.environ.get("API_KEY")
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={API_KEY}"
 
 def formatUserDataAsPrompt(userData):
+    """Formats the user data into a prompt for AI analysis."""
     lines = [
         "تو یک دستیار تحلیلی هستی. در ادامه اطلاعات کاربر در دسته‌بندی‌های مختلف آمده است. بر اساس آن‌ها، تحلیل شخصیتی و رفتاری دقیقی ارائه کن، و نحوه ی تصمیم‌گیری آنرا شرح بده.\n"
     ]
@@ -62,6 +68,7 @@ def formatUserDataAsPrompt(userData):
     return "\n".join(lines)
 
 def generate_response(userData):
+    """Sends a request to the Gemini API to analyze user data."""
     prompt = formatUserDataAsPrompt(userData)
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
@@ -69,16 +76,20 @@ def generate_response(userData):
     response = requests.post(URL, json=payload, headers=headers)
     try:
         result = response.json()
-        return result["candidates"][0]["content"]["parts"][0]["text"]
+        if "candidates" in result:
+            return result["candidates"][0]["content"]["parts"][0]["text"]
+        return "No content in AI response."
     except Exception as e:
         return f"Error processing AI response: {str(e)}"
 
 @app.route("/")
 def index():
+    """Renders the main page."""
     return render_template("index.html")
 
 @app.route("/analyze_direct", methods=["POST"])
 def analyze_direct():
+    """Handles direct analysis of user data."""
     data = request.json
     user_data = data.get("user_data")
     if not user_data:
@@ -87,9 +98,9 @@ def analyze_direct():
     ai_result = generate_response(user_data)
     return jsonify({"ai_result": ai_result})
 
-
 @app.route("/predict_behavior", methods=["POST"])
 def predict_behavior():
+    """Predicts a person's behavior based on their profile and a given situation."""
     data = request.json
     user_data = data.get("user_data")
     situation = data.get("situation")
@@ -121,38 +132,62 @@ Situation: {situation}
 
 @app.route('/healthz')
 def health_check():
+    """Endpoint for health checks."""
     return "OK", 200
 
 
 async def ws_handler(websocket, path):
+    """Handles WebSocket connections for speech-to-text."""
     async for message in websocket:
         data = json.loads(message)
-        audio_bytes = base64.b64decode(data["audio"])
+        audio_data_base64 = data.get("audio")
         qid = data.get("qid")
 
-        payload = {
-            "contents": [{"parts": [{"text": "Transcribe this audio."}]}]
-        }
-        files = {"audio": audio_bytes}
-        headers = {"Content-Type": "application/json"}
-
+        if not audio_data_base64:
+            await websocket.send(json.dumps({"qid": qid, "text": "Error: No audio data received."}))
+            continue
+        
         try:
-            response = requests.post(URL, json=payload, headers=headers)
+            # Construct the payload for multimodal request
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": "Transcribe the audio."},
+                            {
+                                "inlineData": {
+                                    "mimeType": "audio/webm",  # Assuming the audio is sent as webm. Adjust if needed.
+                                    "data": audio_data_base64
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+            
+            headers = {"Content-Type": "application/json"}
+            
+            response = requests.post(URL, data=json.dumps(payload), headers=headers)
+            response.raise_for_status()
             result = response.json()
             text = result["candidates"][0]["content"]["parts"][0]["text"]
-        except exception as e:
-            text = f"Error: {str(e)}"
         
+        except requests.exceptions.RequestException as e:
+            text = f"Error communicating with AI: {str(e)}"
+        except Exception as e:
+            text = f"Error processing AI response: {str(e)}"
+            
         await websocket.send(json.dumps({"qid": qid, "text": text}))
 
-def sart_ws_server():
-    loop = asyncio.new_evenmt_loop()
+def start_ws_server():
+    """Starts the WebSocket server in a separate thread."""
+    loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     ws_server = websockets.serve(ws_handler, "0.0.0.0", 5001)
     loop.run_until_complete(ws_server)
     loop.run_forever()
 
-threading.Thread(target=start_ws_server, daemon= True).start()
+threading.Thread(target=start_ws_server, daemon=True).start()
 
-if __name__ = "__main__""
-    app.run(host="0.0.0.0", port=5000, debug=Trure)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
