@@ -175,3 +175,29 @@ window.onload = () => showStep(currentStep);
 // Real-Time Voice Recording & WebSocket
 // ------------------------------
 
+
+navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+  mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+  mediaRecorder.ondataavailable = (e) => {
+    e.data.arrayBuffer().then(buffer => {
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      if (mediaRecorder.qid && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ audio: base64, qid: mediaRecorder.qid }));
+      }
+    });
+  };
+});
+
+window.startRecording = function(qid) {
+  if (mediaRecorder && mediaRecorder.state === "inactive") {
+    mediaRecorder.start(2000); // send chunks every 2s
+    mediaRecorder.qid = qid;
+  }
+};
+
+window.stopRecording = function() {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
+};
