@@ -22,7 +22,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Add a global mouseup listener to stop recording anywhere on the page
+  // Attach a global mouseup listener to stop recording anywhere on the page
   document.addEventListener("mouseup", () => {
     stopRecording();
     // Reset all buttons in case one was pressed
@@ -37,7 +37,9 @@ window.addEventListener("DOMContentLoaded", () => {
       btn.innerText = "🔴 Recording…";
       startRecording(btn.dataset.target);
     });
-
+    
+    // The problematic btn.addEventListener("mouseup") has been removed.
+    
     // Mobile support
     btn.addEventListener("touchstart", () => {
       btn.innerText = "🔴 Recording…";
