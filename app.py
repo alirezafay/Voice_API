@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify, render_template
 import requests
 import json
 import os
-import base64
 import asyncio
 import websockets
 import threading
@@ -10,10 +9,11 @@ import threading
 app = Flask(__name__)
 
 API_KEY = os.environ.get("API_KEY")
-
-# Use a consistent model URL for both functions
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={API_KEY}"
 
+# ------------------------------
+# Helper functions
+# ------------------------------
 def formatUserDataAsPrompt(userData):
     """Formats the user data into a prompt for AI analysis."""
     lines = [
@@ -30,7 +30,7 @@ def formatUserDataAsPrompt(userData):
     cognitive = userData.get("cognitive_style", {})
     lines.append("سبک تصمیم‌گیری:")
     lines.append(f"- تصمیم‌گیری احساسی یا منطقی: {cognitive.get('decision_Making_Logic')}")
-    lines.append(f"- تحلیل یا شهود در تصمیم‌گیری: {cognitive.get('decision_Making_Analysis')}")
+    lines.append(f"- تحلیل یا شهود در تصمیم‌گیری: {cognitive.get('Decision_Making_Analysis')}")
     lines.append(f"- رویکرد نسبت به اشتباهات: {cognitive.get('locus_of_control')}")
     lines.append(f"- سطح ریسک‌پذیری: {cognitive.get('risk_tolerance')}\n")
 
@@ -65,8 +65,9 @@ def formatUserDataAsPrompt(userData):
     lines.append("جایگاه اجتماعی:")
     lines.append(f"- درک جایگاه اجتماعی: {social_status.get('perceived_social_rank')}")
     lines.append(f"- اعتبار اجتماعی در جامعه: {social_status.get('community_recognition')}")
-    lines.append(f"- هویت‌یابی فردی: {social_status.get('self-identification')}")
+    lines.append(f"- هویت‌یابی فردی: {social_status.get('self_identification')}")
     lines.append(f"- تاثیرگذاری اجتماعی: {social_status.get('social_influence')}\n")
+
     return "\n".join(lines)
 
 def generate_response(userData):
@@ -84,29 +85,27 @@ def generate_response(userData):
     except Exception as e:
         return f"Error processing AI response: {str(e)}"
 
+# ------------------------------
+# Routes
+# ------------------------------
 @app.route("/")
 def index():
-    """Renders the main page."""
     return render_template("index.html")
 
 @app.route("/analyze_direct", methods=["POST"])
 def analyze_direct():
-    """Handles direct analysis of user data."""
     data = request.json
     user_data = data.get("user_data")
     if not user_data:
         return jsonify({"error": "No user data provided"}), 400
-
     ai_result = generate_response(user_data)
     return jsonify({"ai_result": ai_result})
 
 @app.route("/predict_behavior", methods=["POST"])
 def predict_behavior():
-    """Predicts a person's behavior based on their profile and a given situation."""
     data = request.json
     user_data = data.get("user_data")
     situation = data.get("situation")
-
     if not user_data or not situation:
         return jsonify({"prediction": "Missing user data or situation description."}), 400
 
@@ -121,7 +120,6 @@ Situation: {situation}
     headers = {"Content-Type": "application/json"}
 
     response = requests.post(URL, json=payload, headers=headers)
-
     try:
         result = response.json()
         if "candidates" in result:
@@ -131,18 +129,17 @@ Situation: {situation}
     except Exception as e:
         return jsonify({"prediction": f"Error: {str(e)}"})
 
-
-@app.route('/healthz')
+@app.route("/healthz")
 def health_check():
-    """Endpoint for health checks."""
     return "OK", 200
 
-
+# ------------------------------
+# WebSocket server for per-question speech-to-text
+# ------------------------------
 async def ws_handler(websocket, path):
-    """Handles WebSocket connections for speech-to-text."""
-    # Correct URL for multimodal input with a stable model
+    """Handles WebSocket connections for per-question speech-to-text."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={API_KEY}"
-    
+
     async for message in websocket:
         data = json.loads(message)
         audio_data_base64 = data.get("audio")
@@ -151,9 +148,8 @@ async def ws_handler(websocket, path):
         if not audio_data_base64:
             await websocket.send(json.dumps({"qid": qid, "text": "Error: No audio data received."}))
             continue
-        
+
         try:
-            # Construct the payload for multimodal request
             payload = {
                 "contents": [
                     {
@@ -169,23 +165,21 @@ async def ws_handler(websocket, path):
                     }
                 ]
             }
-            
+
             headers = {"Content-Type": "application/json"}
-            
             response = requests.post(url, data=json.dumps(payload), headers=headers)
             response.raise_for_status()
             result = response.json()
             text = result["candidates"][0]["content"]["parts"][0]["text"]
-        
+
         except requests.exceptions.RequestException as e:
             text = f"Error communicating with AI: {str(e)}"
         except Exception as e:
             text = f"Error processing AI response: {str(e)}"
-            
+
         await websocket.send(json.dumps({"qid": qid, "text": text}))
 
 def start_ws_server():
-    """Starts the WebSocket server in a separate thread."""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     ws_server = websockets.serve(ws_handler, "0.0.0.0", 5001)
