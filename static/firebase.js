@@ -4,6 +4,9 @@
 let currentStep = 1;
 let socket;
 let mediaRecorder;
+let audioChunks = [];
+let currentTargetInput;
+let currentStatusDiv;
 
 // ------------------------------
 // Initialize on page load
@@ -24,50 +27,77 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Attach a global mouseup listener to stop recording anywhere on the page
   document.addEventListener("mouseup", () => {
-    stopRecording();
-    // Reset all buttons in case one was pressed
-    document.querySelectorAll(".record-btn").forEach(btn => {
-      btn.innerText = "🎤 Record";
-      btn.classList.remove("recording-active");
-    });
+    stopRecordingAll();
   });
 
-  // Attach record button events
-  document.querySelectorAll(".record-btn").forEach(btn => {
-    btn.addEventListener("mousedown", () => {
-      btn.innerText = "🔴 Recording…";
-      btn.classList.add("recording-active");
-      startRecording(btn.dataset.target);
+  // Attach per-question Start/Stop buttons and status divs
+  document.querySelectorAll(".question-item").forEach(item => {
+    const startBtn = item.querySelector(".start-btn");
+    const stopBtn = item.querySelector(".stop-btn");
+    const statusDiv = item.querySelector(".status");
+    const targetInput = item.querySelector("input, textarea");
+
+    if (!startBtn || !stopBtn || !statusDiv || !targetInput) return;
+
+    startBtn.addEventListener("click", async () => {
+      currentTargetInput = targetInput;
+      currentStatusDiv = statusDiv;
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+
+      currentStatusDiv.textContent = "Recording...";
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          currentStatusDiv.textContent = "Processing...";
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = () => {
+            const base64Audio = reader.result.split(',')[1];
+            // Use WebSocket to send audio to backend
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify({ audio: base64Audio, qid: targetInput.id }));
+            }
+          };
+        };
+
+        mediaRecorder.start(2000); // chunk every 2 seconds
+      } catch (err) {
+        console.error("Microphone error:", err);
+        currentStatusDiv.textContent = "Error: " + err.message;
+      }
     });
 
-    // Mobile support
-    btn.addEventListener("touchstart", () => {
-      btn.innerText = "🔴 Recording…";
-      btn.classList.add("recording-active");
-      startRecording(btn.dataset.target);
+    stopBtn.addEventListener("click", () => {
+      stopRecordingAll();
     });
-
-    btn.addEventListener("touchend", () => {
-      stopRecording();
-      btn.innerText = "🎤 Record";
-      btn.classList.remove("recording-active");
-    });
-  });
-
-  // Initialize MediaRecorder
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-    mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-
-    mediaRecorder.ondataavailable = (e) => {
-      e.data.arrayBuffer().then(buffer => {
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-        if (mediaRecorder.qid && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ audio: base64, qid: mediaRecorder.qid }));
-        }
-      });
-    };
   });
 });
+
+// ------------------------------
+// Helper: Stop recording and reset buttons/status
+// ------------------------------
+function stopRecordingAll() {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
+
+  document.querySelectorAll(".start-btn").forEach(btn => btn.disabled = false);
+  document.querySelectorAll(".stop-btn").forEach(btn => btn.disabled = true);
+  document.querySelectorAll(".status").forEach(div => {
+    if (div.textContent === "Recording...") div.textContent = "Ready to record...";
+  });
+}
 
 // ------------------------------
 // Step Navigation
@@ -207,21 +237,5 @@ window.submitSituation = async function () {
     document.getElementById("situation-result-box").style.display = "block";
   } finally {
     document.getElementById("loading-indicator").style.display = "none";
-  }
-};
-
-// ------------------------------
-// Real-Time Voice Recording
-// ------------------------------
-window.startRecording = function(qid) {
-  if (mediaRecorder && mediaRecorder.state === "inactive") {
-    mediaRecorder.start(2000); // send chunks every 2s
-    mediaRecorder.qid = qid;
-  }
-};
-
-window.stopRecording = function() {
-  if (mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
   }
 };
