@@ -2,14 +2,18 @@ from flask import Flask, request, jsonify, render_template
 import requests
 import json
 import os
+import base64
+import threading
 import asyncio
 import websockets
-import threading
 
 app = Flask(__name__)
 
-API_KEY = os.environ.get("API_KEY")
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={API_KEY}"
+API_KEY_gemini = os.environ.get("API_KEY_ge")
+API_KEY_SST = os.environ.get("API_KEY_s")
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={API_KEY_gemini}"
+SST_URL = f"https://speech.googleapis.com/v1/speech:recognize?key={API_KEY_SST}"  # Google Speech-to-Text
+
 
 # ------------------------------
 # Helper functions
@@ -91,6 +95,46 @@ def generate_response(userData):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/transcribe_audio", methods=["POST"])
+def transcribe_audio():
+    """
+    Receives base64 audio from frontend, sends it to Google Speech-to-Text,
+    returns the transcript.
+    """
+    data = request.json
+    audio_base64 = data.get("audio")
+    qid = data.get("qid")
+    language_code = data.get("language_code", "fa-IR")  # default Persian
+
+    if not audio_base64:
+        return jsonify({"error": "No audio received", "qid": qid}), 400
+
+    payload = {
+        "config": {
+            "encoding": "WEBM_OPUS",
+            "sampleRateHertz": 48000,
+            "languageCode": language_code
+        },
+        "audio": {"content": audio_base64}
+    }
+
+    try:
+        response = requests.post(SST_URL, json=payload)
+        response.raise_for_status()
+        result = response.json()
+        transcript = ""
+        if "results" in result and len(result["results"]) > 0:
+            transcript = result["results"][0]["alternatives"][0]["transcript"]
+        return jsonify({"qid": qid, "transcript": transcript})
+    except Exception as e:
+        return jsonify({"qid": qid, "transcript": f"Error: {str(e)}"}), 500
+
+
+
+
+
 
 @app.route("/analyze_direct", methods=["POST"])
 def analyze_direct():
