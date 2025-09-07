@@ -98,38 +98,36 @@ def generate_response(userData):
 @app.route("/transcribe_audio", methods=["POST"])
 def transcribe_audio():
     try:
-        audio_file = request.files["audio"]
-        audio_bytes = audio_file.read()
+        data = request.json  # JS sends JSON
+        audio_base64 = data.get("audio")
+        qid = data.get("qid")  # question ID
+        language_code = data.get("language_code", "fa-IR")
 
-        # Convert to Base64
-        audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+        if not audio_base64:
+            return jsonify({"error": "No audio data received"}), 400
 
         payload = {
             "config": {
-                "encoding": "WEBM_OPUS",   # Matches frontend recording
+                "encoding": "WEBM_OPUS",
                 "sampleRateHertz": 48000,
-                "languageCode": "fa-IR"    # Persian (change if needed)
+                "languageCode": language_code
             },
-            "audio": {
-                "content": audio_base64
-            }
+            "audio": {"content": audio_base64}
         }
 
         response = requests.post(SST_URL, json=payload)
         result = response.json()
 
-        # Extract text safely
-        if "results" in result:
+        # Extract transcript safely
+        transcript = ""
+        if "results" in result and len(result["results"]) > 0:
             transcript = result["results"][0]["alternatives"][0]["transcript"]
-        else:
-            transcript = ""
 
-        return jsonify({"transcript": transcript})
+        return jsonify({"qid": qid, "transcript": transcript})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
+        
 @app.route("/")
 def index():
     return render_template("index.html")
