@@ -15,6 +15,7 @@ GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.
 SST_URL = f"https://speech.googleapis.com/v1/speech:recognize?key={API_KEY_SST}"  # Google Speech-to-Text
 
 
+
 # ------------------------------
 # Helper functions
 # ------------------------------
@@ -80,7 +81,7 @@ def generate_response(userData):
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
 
-    response = requests.post(URL, json=payload, headers=headers)
+    response = requests.post(GEMINI_URL, json=payload, headers=headers)
     try:
         result = response.json()
         if "candidates" in result:
@@ -92,48 +93,46 @@ def generate_response(userData):
 # ------------------------------
 # Routes
 # ------------------------------
-@app.route("/")
-def index():
-    return render_template("index.html")
 
 
 @app.route("/transcribe_audio", methods=["POST"])
 def transcribe_audio():
-    """
-    Receives base64 audio from frontend, sends it to Google Speech-to-Text,
-    returns the transcript.
-    """
-    data = request.json
-    audio_base64 = data.get("audio")
-    qid = data.get("qid")
-    language_code = data.get("language_code", "fa-IR")  # default Persian
-
-    if not audio_base64:
-        return jsonify({"error": "No audio received", "qid": qid}), 400
-
-    payload = {
-        "config": {
-            "encoding": "WEBM_OPUS",
-            "sampleRateHertz": 48000,
-            "languageCode": language_code
-        },
-        "audio": {"content": audio_base64}
-    }
-
     try:
+        audio_file = request.files["audio"]
+        audio_bytes = audio_file.read()
+
+        # Convert to Base64
+        audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+
+        payload = {
+            "config": {
+                "encoding": "WEBM_OPUS",   # Matches frontend recording
+                "sampleRateHertz": 48000,
+                "languageCode": "fa-IR"    # Persian (change if needed)
+            },
+            "audio": {
+                "content": audio_base64
+            }
+        }
+
         response = requests.post(SST_URL, json=payload)
-        response.raise_for_status()
         result = response.json()
-        transcript = ""
-        if "results" in result and len(result["results"]) > 0:
+
+        # Extract text safely
+        if "results" in result:
             transcript = result["results"][0]["alternatives"][0]["transcript"]
-        return jsonify({"qid": qid, "transcript": transcript})
+        else:
+            transcript = ""
+
+        return jsonify({"transcript": transcript})
+
     except Exception as e:
-        return jsonify({"qid": qid, "transcript": f"Error: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-
-
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 
 @app.route("/analyze_direct", methods=["POST"])
@@ -144,6 +143,7 @@ def analyze_direct():
         return jsonify({"error": "No user data provided"}), 400
     ai_result = generate_response(user_data)
     return jsonify({"ai_result": ai_result})
+
 
 @app.route("/predict_behavior", methods=["POST"])
 def predict_behavior():
@@ -163,7 +163,7 @@ Situation: {situation}
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
 
-    response = requests.post(URL, json=payload, headers=headers)
+    response = requests.post(GEMINI_URL, json=payload, headers=headers)
     try:
         result = response.json()
         if "candidates" in result:
@@ -180,57 +180,7 @@ def health_check():
 # ------------------------------
 # WebSocket server for per-question speech-to-text
 # ------------------------------
-async def ws_handler(websocket, path):
-    """Handles WebSocket connections for per-question speech-to-text."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={API_KEY}"
 
-    async for message in websocket:
-        data = json.loads(message)
-        audio_data_base64 = data.get("audio")
-        qid = data.get("qid")
-
-        if not audio_data_base64:
-            await websocket.send(json.dumps({"qid": qid, "text": "Error: No audio data received."}))
-            continue
-
-        try:
-            payload = {
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": "Transcribe the audio."},
-                            {
-                                "inlineData": {
-                                    "mimeType": "audio/webm",
-                                    "data": audio_data_base64
-                                }
-                            }
-                        ]
-                    }
-                ]
-            }
-
-            headers = {"Content-Type": "application/json"}
-            response = requests.post(url, data=json.dumps(payload), headers=headers)
-            response.raise_for_status()
-            result = response.json()
-            text = result["candidates"][0]["content"]["parts"][0]["text"]
-
-        except requests.exceptions.RequestException as e:
-            text = f"Error communicating with AI: {str(e)}"
-        except Exception as e:
-            text = f"Error processing AI response: {str(e)}"
-
-        await websocket.send(json.dumps({"qid": qid, "text": text}))
-
-def start_ws_server():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    ws_server = websockets.serve(ws_handler, "0.0.0.0", 5001)
-    loop.run_until_complete(ws_server)
-    loop.run_forever()
-
-threading.Thread(target=start_ws_server, daemon=True).start()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
