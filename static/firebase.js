@@ -1,36 +1,29 @@
-// ------------------------------
+// ==============================
 // Global Variables
-// ------------------------------
+// ==============================
 let currentStep = 1;
 let socket;
-let mediaRecorder;
+let mediaRecorder = null;
 let audioChunks = [];
-let currentTargetInput;
-let currentStatusDiv;
+let currentTargetInput = null;
+let currentStatusDiv = null;
 
-// ------------------------------
+// ==============================
 // Initialize on page load
-// ------------------------------
+// ==============================
 window.addEventListener("DOMContentLoaded", () => {
   showStep(currentStep);
 
-  // Initialize WebSocket for real-time transcription
+  // Initialize WebSocket
   socket = new WebSocket("ws://localhost:5001");
   socket.onopen = () => console.log("WebSocket connected");
   socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
     const inputBox = document.getElementById(data.qid);
-    if (inputBox) {
-      inputBox.value += " " + data.text;
-    }
+    if (inputBox) inputBox.value += " " + data.text;
   };
 
-  // Attach a global mouseup listener to stop recording anywhere on the page
-  document.addEventListener("mouseup", () => {
-    stopRecordingAll();
-  });
-
-  // Attach per-question Start/Stop buttons and status divs
+  // Attach per-question Start/Stop buttons
   document.querySelectorAll(".question-item").forEach(item => {
     const startBtn = item.querySelector(".start-btn");
     const stopBtn = item.querySelector(".stop-btn");
@@ -39,69 +32,61 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (!startBtn || !stopBtn || !statusDiv || !targetInput) return;
 
-    startBtn.addEventListener("click", async () => {
-      currentTargetInput = targetInput;
-      currentStatusDiv = statusDiv;
-
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-
-      currentStatusDiv.textContent = "Recording...";
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = event => {
-          audioChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = () => {
-          currentStatusDiv.textContent = "Processing...";
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
-          const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
-          reader.onloadend = () => {
-            const base64Audio = reader.result.split(',')[1];
-            // Use WebSocket to send audio to backend
-            if (socket.readyState === WebSocket.OPEN) {
-              socket.send(JSON.stringify({ audio: base64Audio, qid: targetInput.id }));
-            }
-          };
-        };
-
-        mediaRecorder.start(2000); // chunk every 2 seconds
-      } catch (err) {
-        console.error("Microphone error:", err);
-        currentStatusDiv.textContent = "Error: " + err.message;
-      }
-    });
-
-    stopBtn.addEventListener("click", () => {
-      stopRecordingAll();
-    });
+    startBtn.addEventListener("click", () => startRecording(targetInput, statusDiv, startBtn, stopBtn));
+    stopBtn.addEventListener("click", () => stopRecording(startBtn, stopBtn, statusDiv));
   });
 });
 
-// ------------------------------
-// Helper: Stop recording and reset buttons/status
-// ------------------------------
-function stopRecordingAll() {
-  if (mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-  }
+// ==============================
+// Recording Functions
+// ==============================
+async function startRecording(targetInput, statusDiv, startBtn, stopBtn) {
+  currentTargetInput = targetInput;
+  currentStatusDiv = statusDiv;
 
-  document.querySelectorAll(".start-btn").forEach(btn => btn.disabled = false);
-  document.querySelectorAll(".stop-btn").forEach(btn => btn.disabled = true);
-  document.querySelectorAll(".status").forEach(div => {
-    if (div.textContent === "Recording...") div.textContent = "Ready to record...";
-  });
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+  statusDiv.textContent = "Recording...";
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+
+    mediaRecorder.onstop = () => {
+      statusDiv.textContent = "Processing...";
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = () => {
+        const base64Audio = reader.result.split(',')[1];
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ audio: base64Audio, qid: targetInput.id }));
+        }
+      };
+    };
+
+    mediaRecorder.start();
+  } catch (err) {
+    console.error("Microphone error:", err);
+    statusDiv.textContent = "Error: " + err.message;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  }
 }
 
-// ------------------------------
+function stopRecording(startBtn, stopBtn, statusDiv) {
+  if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  if (statusDiv.textContent === "Recording...") statusDiv.textContent = "Ready to record...";
+}
+
+// ==============================
 // Step Navigation
-// ------------------------------
+// ==============================
 function showStep(stepNum) {
   document.querySelectorAll(".step").forEach(step => step.classList.remove("active"));
   const current = document.getElementById(`step${stepNum}`);
@@ -114,70 +99,87 @@ window.nextStep = function () {
 };
 
 window.previousStep = function () {
-  if (currentStep > 1) {
-    currentStep--;
-    showStep(currentStep);
-  }
+  if (currentStep > 1) currentStep--;
+  showStep(currentStep);
 };
 
-// ------------------------------
+// ==============================
 // Start Analysis
-// ------------------------------
+// ==============================
 window.startAnalysis = function () {
   document.getElementById("intro-page").style.display = "none";
   document.querySelector(".chat-container").style.display = "block";
   showStep(currentStep);
 };
 
-// ------------------------------
-// Collect User Data & AI Analysis
-// ------------------------------
+// ==============================
+// Collect User Data
+// ==============================
 function getUserData() {
+  const fields = [
+    "name", "age", "gender", "residence",
+    "decision_Making_Logic", "Decision_Making_Analysis", "locus_of_control", "risk_tolerance",
+    "conflict_response", "trust_building", "social_prefrence", "anger_management",
+    "failure_handling", "learning_from_mistakes", "past_impact", "adaptability",
+    "life_goal", "motivation_source", "success_definition", "sacrifice_level",
+    "education_level", "profession_title", "skill_set",
+    "perceived_social_rank", "community_recognition", "self_identification", "social_influence"
+  ];
+
+  const data = {};
+  fields.forEach(f => {
+    const el = document.getElementById(f);
+    data[f] = el ? el.value : "";
+  });
+
   return {
     personal_information: {
-      name: document.getElementById("name").value,
-      age: parseInt(document.getElementById("age").value),
-      gender: document.getElementById("gender").value,
-      residence: document.getElementById("residence").value
+      name: data.name,
+      age: parseInt(data.age) || 0,
+      gender: data.gender,
+      residence: data.residence
     },
     cognitive_style: {
-      decision_Making_Logic: document.getElementById("decision_Making_Logic").value,
-      Decision_Making_Analysis: document.getElementById("Decision_Making_Analysis").value,
-      locus_of_control: document.getElementById("locus_of_control").value,
-      risk_tolerance: document.getElementById("risk_tolerance").value
+      decision_Making_Logic: data.decision_Making_Logic,
+      Decision_Making_Analysis: data.Decision_Making_Analysis,
+      locus_of_control: data.locus_of_control,
+      risk_tolerance: data.risk_tolerance
     },
     emotion: {
-      conflict_response: document.getElementById("conflict_response").value,
-      trust_building: document.getElementById("trust_building").value,
-      social_prefrence: document.getElementById("social_prefrence").value,
-      anger_management: document.getElementById("anger_management").value
+      conflict_response: data.conflict_response,
+      trust_building: data.trust_building,
+      social_prefrence: data.social_prefrence,
+      anger_management: data.anger_management
     },
     experience: {
-      failure_handling: document.getElementById("failure_handling").value,
-      learning_from_mistakes: document.getElementById("learning_from_mistakes").value,
-      past_impact: document.getElementById("past_impact").value,
-      adaptability: document.getElementById("adaptability").value
+      failure_handling: data.failure_handling,
+      learning_from_mistakes: data.learning_from_mistakes,
+      past_impact: data.past_impact,
+      adaptability: data.adaptability
     },
     motivations: {
-      life_goal: document.getElementById("life_goal").value,
-      motivation_source: document.getElementById("motivation_source").value,
-      success_definition: document.getElementById("success_definition").value,
-      sacrifice_level: document.getElementById("sacrifice_level").value
+      life_goal: data.life_goal,
+      motivation_source: data.motivation_source,
+      success_definition: data.success_definition,
+      sacrifice_level: data.sacrifice_level
     },
     background: {
-      education_level: document.getElementById("education_level").value,
-      profession_title: document.getElementById("profession_title").value,
-      skill_set: document.getElementById("skill_set").value
+      education_level: data.education_level,
+      profession_title: data.profession_title,
+      skill_set: data.skill_set
     },
     social_status: {
-      perceived_social_rank: document.getElementById("perceived_social_rank").value,
-      community_recognition: document.getElementById("community_recognition").value,
-      self_identification: document.getElementById("self_identification").value,
-      social_influence: document.getElementById("social_influence").value
+      perceived_social_rank: data.perceived_social_rank,
+      community_recognition: data.community_recognition,
+      self_identification: data.self_identification,
+      social_influence: data.social_influence
     }
   };
 }
 
+// ==============================
+// AI Analysis
+// ==============================
 window.collectAndAnalyze = async function () {
   const userData = getUserData();
 
@@ -192,7 +194,7 @@ window.collectAndAnalyze = async function () {
     });
 
     const result = await response.json();
-    document.getElementById("result-box").innerText = result.response || result.ai_result || "No response from AI.";
+    document.getElementById("result-box").innerText = result.ai_result || "No response from AI.";
     document.getElementById("result-box").style.display = "block";
   } catch (err) {
     document.getElementById("result-box").innerText = "❌ Error contacting server.";
@@ -202,9 +204,9 @@ window.collectAndAnalyze = async function () {
   }
 };
 
-// ------------------------------
+// ==============================
 // Situation Prediction
-// ------------------------------
+// ==============================
 window.predictBehavior = function () {
   document.getElementById("situation-input-box").style.display = "block";
   document.getElementById("situation-result-box").style.display = "none";
@@ -212,10 +214,7 @@ window.predictBehavior = function () {
 
 window.submitSituation = async function () {
   const situation = document.getElementById("situation-text").value.trim();
-  if (!situation) {
-    alert("Please describe a situation.");
-    return;
-  }
+  if (!situation) return alert("Please describe a situation.");
 
   const userData = getUserData();
 
