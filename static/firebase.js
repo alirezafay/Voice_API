@@ -2,7 +2,6 @@
 // Global Variables
 // ==============================
 let currentStep = 1;
-let socket;
 let mediaRecorder = null;
 let audioChunks = [];
 let currentTargetInput = null;
@@ -14,15 +13,6 @@ let currentStatusDiv = null;
 window.addEventListener("DOMContentLoaded", () => {
   showStep(currentStep);
 
-  // Initialize WebSocket
-  socket = new WebSocket("ws://localhost:5001");
-  socket.onopen = () => console.log("WebSocket connected");
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    const inputBox = document.getElementById(data.qid);
-    if (inputBox) inputBox.value += " " + data.text;
-  };
-
   // Attach per-question Start/Stop buttons
   document.querySelectorAll(".question-item").forEach(item => {
     const startBtn = item.querySelector(".start-btn");
@@ -32,8 +22,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (!startBtn || !stopBtn || !statusDiv || !targetInput) return;
 
-    startBtn.addEventListener("click", () => startRecording(targetInput, statusDiv, startBtn, stopBtn));
-    stopBtn.addEventListener("click", () => stopRecording(startBtn, stopBtn, statusDiv));
+    startBtn.addEventListener("click", () =>
+      startRecording(targetInput, statusDiv, startBtn, stopBtn)
+    );
+    stopBtn.addEventListener("click", () =>
+      stopRecording(startBtn, stopBtn, statusDiv)
+    );
   });
 });
 
@@ -50,20 +44,40 @@ async function startRecording(targetInput, statusDiv, startBtn, stopBtn) {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
     audioChunks = [];
 
     mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
 
     mediaRecorder.onstop = () => {
       statusDiv.textContent = "Processing...";
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm;codecs=opus" });
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
-      reader.onloadend = () => {
-        const base64Audio = reader.result.split(',')[1];
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ audio: base64Audio, qid: targetInput.id }));
+      reader.onloadend = async () => {
+        const base64Audio = reader.result.split(",")[1];
+
+        try {
+          const response = await fetch("/transcribe_audio", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              audio: base64Audio,
+              qid: targetInput.id,
+              language_code: "fa-IR" // or "en-US"
+            })
+          });
+
+          const result = await response.json();
+          if (result.transcript) {
+            targetInput.value += " " + result.transcript;
+            statusDiv.textContent = "Done ✔";
+          } else {
+            statusDiv.textContent = "No transcript.";
+          }
+        } catch (err) {
+          console.error("Transcription error:", err);
+          statusDiv.textContent = "Error transcribing.";
         }
       };
     };
@@ -229,7 +243,8 @@ window.submitSituation = async function () {
     });
 
     const result = await response.json();
-    document.getElementById("situation-result-box").innerText = result.prediction || "No prediction returned.";
+    document.getElementById("situation-result-box").innerText =
+      result.prediction || "No prediction returned.";
     document.getElementById("situation-result-box").style.display = "block";
   } catch (err) {
     document.getElementById("situation-result-box").innerText = "❌ Error contacting server.";
