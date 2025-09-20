@@ -6,6 +6,8 @@ import base64
 import threading
 import asyncio
 import websockets
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 app = Flask(__name__)
 
@@ -14,7 +16,9 @@ API_KEY_SST = os.environ.get("API_KEY_s")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={API_KEY_gemini}"
 SST_URL = f"https://speech.googleapis.com/v1/speech:recognize?key={API_KEY_SST}"  # Google Speech-to-Text
 
-
+cred = credentials.Certificate("firebase_key.json")
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 # ------------------------------
 # Helper functions
@@ -137,11 +141,16 @@ def index():
 def analyze_direct():
     data = request.json
     user_data = data.get("user_data")
+    email = data.get("email")
+    
     if not user_data:
         return jsonify({"error": "No user data provided"}), 400
+    
+    db.collection("user_answers").document(email).set({"answer": user_data}, merge=True)
     ai_result = generate_response(user_data)
+    db.collection("user_answers").document(email).set({"analysis": ai_result}, merge=True)
+    
     return jsonify({"ai_result": ai_result})
-
 
 @app.route("/predict_behavior", methods=["POST"])
 def predict_behavior():
