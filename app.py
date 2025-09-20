@@ -141,7 +141,7 @@ def index():
 def analyze_direct():
     data = request.json
     user_data = data.get("user_data")
-    email = data.get("email")
+    email = user_data.get("personal_information", {}).get("name")
     
     if not user_data:
         return jsonify({"error": "No user data provided"}), 400
