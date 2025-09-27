@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 API_KEY_gemini = os.environ.get("API_KEY_ge")
 API_KEY_SST = os.environ.get("API_KEY_s")
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={API_KEY_gemini}"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-latest:generateContent?key={API_KEY_gemini}"
 SST_URL = f"https://speech.googleapis.com/v1/speech:recognize?key={API_KEY_SST}"  # Google Speech-to-Text
 
 cred = credentials.Certificate("firebase_key.json")
