@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="static/styles.css" />
   <!-- Firebase SDK -->
   <script type="module" src="static/firebase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
@@ -19,7 +20,9 @@
   </p>
   <p style="max-width: 800px; margin: 15px auto; font-size: 18px;">
     After answering all the questions, the AI will generate a behavioral analysis based on your responses.<br>
-    You can also test how you might behave in a specific real-life situation by using the <em>“Predict Behavior in Situation”</em> option.
+    You can also test how you might behave in a specific real-life situation by using the <em>“Predict Behavior in Situation”</em> option. <br><br>
+    <strong>Furthermore:</strong> You can record your voice in responses instead of typing in each question box. 
+    The system automatically detects your language and writes the transcribed text in the question box. 
   </p>
   <hr style="margin: 30px 0;">
 
@@ -29,20 +32,30 @@
   </p>
   <p dir="rtl" style="max-width: 800px; margin: 15px auto; font-size: 18px;">
     پس از تکمیل پرسش‌نامه، تحلیل شخصیتی بر اساس پاسخ‌های شما نمایش داده می‌شود.<br>
-    همچنین می‌توانید با انتخاب گزینه <em>«پیش‌بینی رفتار در موقعیت»</em>، واکنش خود را در یک شرایط واقعی خاص بررسی کنید.
+    همچنین می‌توانید با انتخاب گزینه <em>«پیش‌بینی رفتار در موقعیت»</em>، واکنش خود را در یک شرایط واقعی خاص بررسی کنید.<br><br>
+    <strong>همچنین:</strong> شما می‌توانید به جای تایپ در هر باکس سؤال، پاسخ‌های خود را با ضبط صدا وارد کنید.  
+    سیستم به صورت خودکار زبان شما را تشخیص داده و متن آن را در باکس سؤال قرار می‌دهد.
   </p>
 
   <button onclick="startAnalysis()" style="margin-top: 30px; padding: 12px 30px; font-size: 18px; border-radius: 8px;">
-    ▶ Start Analysis / شروع تحلیل
+    ▶ Start Analysis / شروع تحلیل 
   </button>
 </div>
 
 
-  
   <div class="chat-container" style="display: none;">
     <div class="chat-box">
       <div class="chat-header">AI Personality Analyzer</div>
       
+      <!-- Progress Bar -->
+      <div id="progress-container" style="width: 100%; background: #e0e0e0; border-radius: 10px; height: 16px; margin: 15px 0; overflow: hidden;">
+        <div id="progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #0bb1c0, #00d4ff); transition: width 0.3s ease;"></div>
+      </div>
+      <div id="progress-text" style="text-align: right; font-weight: 600; font-size: 14px; color: #0bb1c0; margin-bottom: 10px;">
+        Step 1 of 7
+      </div>
+
+ 
       <div class="step" id="step1">
         <div class="form-section">
           <h3 class="section-title">Personal Information / اطلاعات شخصی</h3>
@@ -55,7 +68,7 @@
             <input type="text" id="name" required>
             <button class="start-btn" data-target="name">Start Recording</button>
             <button class="stop-btn" data-target="name" disabled>Stop Recording</button>
-  <!-- Status display -->
+  <!-- Staus display -->
           <div class="status" id="status-name">Ready to record...</div>
           </div>
 
@@ -95,7 +108,7 @@
           <div class="status" id="status-name">Ready to record...</div>
           </div>
           </div>
-          <button class="btn-next" onclick="nextStep()">Next</button>
+          <button class="btn-next" onclick="nextStep()">Next ➡</button>
         </div>
 
       
@@ -141,8 +154,8 @@
           </div>
 
         
-          <button class="btn-back" onclick="previousStep()">Back</button>
-          <button class="btn-next" onclick="nextStep()">Next</button>
+          <button class="btn-back" onclick="previousStep()">⬅ Back</button>
+          <button class="btn-next" onclick="nextStep()">Next ➡</button>
         </div>
 
       <div class="step" id="step3">
@@ -197,8 +210,8 @@
           <div class="status" id="status-name">Ready to record...</div>
           </div>
         </div>
-        <button class="btn-back" onclick="previousStep()">Back</button>
-        <button class="btn-next" onclick="nextStep()">Next</button>
+        <button class="btn-back" onclick="previousStep()">⬅ Back</button>
+        <button class="btn-next" onclick="nextStep()">Next ➡</button>
       </div>
  
       
@@ -255,8 +268,8 @@
           <div class="status" id="status-name">Ready to record...</div>
           </div>
         </div>
-        <button class="btn-back" onclick="previousStep()">Back</button>
-        <button class="btn-next" onclick="nextStep()">Next</button>
+        <button class="btn-back" onclick="previousStep()">⬅ Back</button>
+        <button class="btn-next" onclick="nextStep()">Next ➡</button>
       </div>
 
       <div class="step" id="step5">
@@ -311,8 +324,8 @@
           <div class="status" id="status-name">Ready to record...</div>
           </div>
         </div>
-        <button class="btn-back" onclick="previousStep()">Back</button>
-        <button class="btn-next" onclick="nextStep()">Next</button>
+        <button class="btn-back" onclick="previousStep()">⬅ Back</button>
+        <button class="btn-next" onclick="nextStep()">Next ➡</button>
       </div>
 
   
@@ -368,8 +381,8 @@
           <div class="status" id="status-name">Ready to record...</div>
           </div>
         </div>
-          <button class="btn-back" onclick="previousStep()">Back</button>
-          <button class="btn-next" onclick="nextStep()">Next</button>
+          <button class="btn-back" onclick="previousStep()">⬅ Back</button>
+          <button class="btn-next" onclick="nextStep()">Next ➡</button>
       </div>   
 
 
@@ -466,9 +479,6 @@
 
       </div>
     </div>
-
-
-
 
 </body>
 </html>
