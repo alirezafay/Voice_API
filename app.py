@@ -8,11 +8,14 @@ import asyncio
 import websockets
 import firebase_admin
 from firebase_admin import credentials, firestore
+import uuid 
 
 app = Flask(__name__)
 
-API_KEY_gemini = os.environ.get("API_KEY_ge")
-API_KEY_SST = os.environ.get("API_KEY_s")
+#API_KEY_gemini = os.environ.get("API_KEY_ge")
+#API_KEY_SST = os.environ.get("API_KEY_s")
+API_KEY_gemini = "AIzaSyB0naRvzzrbWvXlsR5_rUY_k8dO3Vj0DkU"
+API_KEY_SST = "AIzaSyBsNxSeqXFMyTbNOZOYWxVvhUiK23KB4eE"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={API_KEY_gemini}"
 SST_URL = f"https://speech.googleapis.com/v1/speech:recognize?key={API_KEY_SST}"  # Google Speech-to-Text
 
@@ -80,19 +83,32 @@ def formatUserDataAsPrompt(userData):
     return "\n".join(lines)
 
 def generate_response(userData):
-    """Sends a request to the Gemini API to analyze user data."""
     prompt = formatUserDataAsPrompt(userData)
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
 
-    response = requests.post(GEMINI_URL, json=payload, headers=headers)
     try:
-        result = response.json()
-        if "candidates" in result:
-            return result["candidates"][0]["content"]["parts"][0]["text"]
-        return "No content in AI response."
+        response = requests.post(GEMINI_URL, json=payload, headers=headers)
+        raw_text = response.text
+        print("📡 Gemini raw response:", raw_text)
+
+        try:
+            result = response.json()
+        except Exception:
+            return f"⚠️ Gemini did not return JSON:\n{raw_text}"
+
+        if "error" in result:
+            return f"⚠️ Gemini API error: {result['error'].get('message')}"
+
+        if "candidates" in result and result["candidates"]:
+            return result["candidates"][0]["content"]["parts"][0].get("text", "⚠️ No text in Gemini response")
+
+        return f"⚠️ Unexpected Gemini response:\n{raw_text}"
+
     except Exception as e:
-        return f"Error processing AI response: {str(e)}"
+        import traceback; traceback.print_exc()
+        return f"❌ Exception talking to Gemini: {str(e)}"
+
 
 # ------------------------------
 # Routes
@@ -139,18 +155,46 @@ def index():
 
 @app.route("/analyze_direct", methods=["POST"])
 def analyze_direct():
-    data = request.json
-    user_data = data.get("user_data")
-    email = user_data.get("personal_information", {}).get("name")
-    
-    if not user_data:
-        return jsonify({"error": "No user data provided"}), 400
-    
-    db.collection("user_answers").document(email).set({"answer": user_data}, merge=True)
-    ai_result = generate_response(user_data)
-    db.collection("user_answers").document(email).set({"analysis": ai_result}, merge=True)
-    
-    return jsonify({"ai_result": ai_result})
+    try:
+        print("📥 /analyze_direct hit!")
+        data = request.json
+        print("Received JSON:", data)
+
+        user_data = data.get("user_data")
+        if not user_data:
+            return jsonify({"error": "No user data provided"}), 400
+
+        doc_id = (
+            user_data.get("personal_information", {}).get("email")
+            or user_data.get("personal_information", {}).get("name")
+            or str(uuid.uuid4())
+        ).strip() or str(uuid.uuid4())
+        doc_id = doc_id.replace("/", "_")
+        print("Using Firestore doc_id:", doc_id)
+
+        ai_result = generate_response(user_data)
+        print("AI result to return:", ai_result)
+
+        db.collection("user_answers").document(doc_id).set({
+            "answer": user_data,
+            "analysis": ai_result
+        }, merge=True)
+
+        # Important: return JSON without ASCII escaping
+        return app.response_class(
+            response=json.dumps({"ai_result": ai_result}, ensure_ascii=False),
+            status=200,
+            mimetype="application/json"
+        )
+
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return app.response_class(
+            response=json.dumps({"error": str(e)}, ensure_ascii=False),
+            status=500,
+            mimetype="application/json"
+        )
+
 
 @app.route("/predict_behavior", methods=["POST"])
 def predict_behavior():
@@ -184,10 +228,10 @@ Situation: {situation}
 def health_check():
     return "OK", 200
 
-# ------------------------------
-# WebSocket server for per-question speech-to-text
-# ------------------------------
 
-
+# ------------------------------
+# 
+# WebSocket server For Portfolio
+# ------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
