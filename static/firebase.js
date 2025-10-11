@@ -7,11 +7,15 @@ let audioChunks = [];
 let currentTargetInput = null;
 let currentStatusDiv = null;
 
+// ✅ Progress bar setup
+const totalSteps = 7; // adjust if you add/remove steps
+
 // ==============================
 // Initialize on page load
 // ==============================
 window.addEventListener("DOMContentLoaded", () => {
   showStep(currentStep);
+  updateProgress(); // ✅ Initialize progress bar
 
   // Attach per-question Start/Stop buttons
   document.querySelectorAll(".question-item").forEach(item => {
@@ -99,7 +103,7 @@ function stopRecording(startBtn, stopBtn, statusDiv) {
 }
 
 // ==============================
-// Step Navigation
+// Step Navigation + Progress Bar
 // ==============================
 function showStep(stepNum) {
   document.querySelectorAll(".step").forEach(step => step.classList.remove("active"));
@@ -107,14 +111,27 @@ function showStep(stepNum) {
   if (current) current.classList.add("active");
 }
 
+// ✅ Progress bar updater
+function updateProgress() {
+  const bar = document.getElementById("progress-bar");
+  const text = document.getElementById("progress-text");
+  if (!bar || !text) return;
+
+  const percent = (currentStep / totalSteps) * 100;
+  bar.style.width = percent + "%";
+  text.textContent = `Step ${currentStep} of ${totalSteps}`;
+}
+
 window.nextStep = function () {
   currentStep++;
   showStep(currentStep);
+  updateProgress(); // ✅ update progress bar
 };
 
 window.previousStep = function () {
   if (currentStep > 1) currentStep--;
   showStep(currentStep);
+  updateProgress(); // ✅ update progress bar
 };
 
 // ==============================
@@ -124,6 +141,7 @@ window.startAnalysis = function () {
   document.getElementById("intro-page").style.display = "none";
   document.querySelector(".chat-container").style.display = "block";
   showStep(currentStep);
+  updateProgress(); // ✅ start with step 1 progress
 };
 
 // ==============================
@@ -191,11 +209,42 @@ function getUserData() {
   };
 }
 
+function validateUserData(userData) {
+  const missingFields = [];
+
+  const requiredStructure = {
+    personal_information: ["name", "age", "gender", "residence"],
+    cognitive_style: ["decision_Making_Logic", "Decision_Making_Analysis", "locus_of_control", "risk_tolerance"],
+    emotion: ["conflict_response", "trust_building", "social_prefrence", "anger_management"],
+    experience: ["failure_handling", "learning_from_mistakes", "past_impact", "adaptability"],
+    motivations: ["life_goal", "motivation_source", "success_definition", "sacrifice_level"],
+    background: ["education_level", "profession_title", "skill_set"],
+    social_status: ["perceived_social_rank", "community_recognition", "self_identification", "social_influence"]
+  };
+
+  for (const [category, fields] of Object.entries(requiredStructure)) {
+    for (const field of fields) {
+      const value = userData[category]?.[field];
+      if (!value || value.trim?.() === "" || value === "None" || value === null) {
+        missingFields.push(`${category} → ${field}`);
+      }
+    }
+  }
+
+  return missingFields;
+}
+
 // ==============================
 // AI Analysis
 // ==============================
 window.collectAndAnalyze = async function () {
   const userData = getUserData();
+
+  const missingFields = validateUserData(userData);
+  if (missingFields.length > 0) {
+    alert("⚠️ Please fill in all required fields before submitting.\n\nMissing fields:\n" + missingFields.join("\n"));
+    return;
+  }
 
   document.getElementById("loading-indicator").style.display = "block";
   document.getElementById("result-box").style.display = "none";
@@ -207,11 +256,30 @@ window.collectAndAnalyze = async function () {
       body: JSON.stringify({ user_data: userData })
     });
 
-    const result = await response.json();
-    document.getElementById("result-box").innerText = result.ai_result || "No response from AI.";
+    const raw = await response.text();
+    let result;
+    try {
+      result = JSON.parse(raw);
+    } catch (e) {
+      document.getElementById("result-box").innerText =
+        "⚠️ Server returned non-JSON response:\n" + raw;
+      document.getElementById("result-box").style.display = "block";
+      return;
+    }
+
+    if (result.ai_result) {
+      document.getElementById("result-box").innerHTML = marked.parse(result.ai_result);
+    } else if (result.error) {
+      document.getElementById("result-box").innerText = "⚠️ AI Error: " + result.error;
+    } else {
+      document.getElementById("result-box").innerText =
+        "No usable response from AI.\n" + JSON.stringify(result, null, 2);
+    }
+
     document.getElementById("result-box").style.display = "block";
   } catch (err) {
-    document.getElementById("result-box").innerText = "❌ Error contacting server.";
+    document.getElementById("result-box").innerText =
+      "❌ Error contacting server: " + err.message;
     document.getElementById("result-box").style.display = "block";
   } finally {
     document.getElementById("loading-indicator").style.display = "none";
@@ -242,12 +310,37 @@ window.submitSituation = async function () {
       body: JSON.stringify({ user_data: userData, situation })
     });
 
-    const result = await response.json();
-    document.getElementById("situation-result-box").innerText =
-      result.prediction || "No prediction returned.";
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonErr) {
+      const text = await response.text();
+      try {
+        const parsed = JSON.parse(text);
+        result = parsed;
+      } catch (e) {
+        document.getElementById("situation-result-box").innerText =
+          "⚠️ Server returned non-JSON response:\n" + text;
+        document.getElementById("situation-result-box").style.display = "block";
+        return;
+      }
+    }
+
+    if (result.prediction) {
+      document.getElementById("situation-result-box").innerText = result.prediction;
+    } else if (result.ai_result) {
+      document.getElementById("result-box").innerHTML = marked.parse(result.ai_result);
+    } else if (result.error) {
+      document.getElementById("situation-result-box").innerText = "⚠️ AI Error: " + result.error;
+    } else {
+      document.getElementById("situation-result-box").innerText =
+        "⚠️ No usable response from server:\n" + JSON.stringify(result, null, 2);
+    }
+
     document.getElementById("situation-result-box").style.display = "block";
   } catch (err) {
-    document.getElementById("situation-result-box").innerText = "❌ Error contacting server.";
+    document.getElementById("situation-result-box").innerText =
+      "❌ Error contacting server: " + err.message;
     document.getElementById("situation-result-box").style.display = "block";
   } finally {
     document.getElementById("loading-indicator").style.display = "none";
