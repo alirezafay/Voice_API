@@ -14,10 +14,10 @@ app = Flask(__name__)
 
 #API_KEY_gemini = os.environ.get("API_KEY_ge")
 #API_KEY_SST = os.environ.get("API_KEY_s")
-API_KEY_gemini = "AIzaSyB0naRvzzrbWvXlsR5_rUY_k8dO3Vj0DkU"
-API_KEY_SST = "AIzaSyBsNxSeqXFMyTbNOZOYWxVvhUiK23KB4eE"
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={API_KEY_gemini}"
-SST_URL = f"https://speech.googleapis.com/v1/speech:recognize?key={API_KEY_SST}"  # Google Speech-to-Text
+API_KEY_gemini = "###"
+API_KEY_SST = "###"
+GEMINI_URL = "###"
+SST_URL = "###"  # Google Speech-to-Text
 
 cred = credentials.Certificate("firebase_key.json")
 firebase_admin.initialize_app(cred)
